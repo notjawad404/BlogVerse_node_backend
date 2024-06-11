@@ -2,6 +2,9 @@ const express = require('express');
 const mongoose = require('mongoose');
 const bodtParser = require('body-parser');
 const cors = require('cors');
+const bcrypt = require('bcryptjs');
+const jwt = require('jsonwebtoken');
+const { check, validationResult } = require('express-validator');
 
 const app = express();
 app.use(cors());
@@ -18,6 +21,98 @@ mongoose.connect(URL, {
 })
 .catch((error) => {
     console.log("Error Connecting to MongoDB: ", error.message);
+});
+
+
+const UserSchema = new mongoose.Schema({
+    username: { type: String, required: true, unique: true },
+    password: { type: String, required: true },
+});
+
+const User = mongoose.model('User', UserSchema);
+
+app.post('/signup', [
+    check('username', 'Username is required').not().isEmpty(),
+    check('password', 'Password must be 6 or more characters').isLength({ min: 6 })
+], async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        return res.status(400).json({ errors: errors.array() });
+    }
+
+    const { username, password } = req.body;
+
+    try {
+        let user = await User.findOne({ username });
+
+        if (user) {
+            return res.status(400).json({ message: 'User already exists' });
+        }
+
+        const salt = await bcrypt.genSalt(10);
+        const hashedPassword = await bcrypt.hash(password, salt);
+
+        user = new User({
+            username,
+            password: hashedPassword,
+        });
+
+        await user.save();
+
+        const payload = {
+            user: {
+                id: user.id
+            }
+        };
+
+        jwt.sign(payload, 'secret', { expiresIn: '1h' }, (err, token) => {
+            if (err) throw err;
+            res.status(201).json({ token });
+        });
+    } catch (error) {
+        console.error('Error signing up user:', error);
+        res.status(500).json({ message: 'Server error' });
+    }
+});
+
+app.post('/login', [
+    check('username', 'Username is required').not().isEmpty(),
+    check('password', 'Password is required').exists()
+], async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        return res.status(400).json({ errors: errors.array() });
+    }
+
+    const { username, password } = req.body;
+
+    try {
+        let user = await User.findOne({ username });
+
+        if (!user) {
+            return res.status(400).json({ message: 'Invalid credentials' });
+        }
+
+        const isMatch = await bcrypt.compare(password, user.password);
+
+        if (!isMatch) {
+            return res.status(400).json({ message: 'Invalid credentials' });
+        }
+
+        const payload = {
+            user: {
+                id: user.id
+            }
+        };
+
+        jwt.sign(payload, 'secret', { expiresIn: '1h' }, (err, token) => {
+            if (err) throw err;
+            res.json({ token });
+        });
+    } catch (error) {
+        console.error('Error logging in user:', error);
+        res.status(500).json({ message: 'Server error' });
+    }
 });
 
 // Post Schema
