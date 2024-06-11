@@ -31,7 +31,7 @@ const UserSchema = new mongoose.Schema({
 
 const User = mongoose.model('User', UserSchema);
 
-app.post('/signup', [
+app.post('/auth', [
     check('username', 'Username is required').not().isEmpty(),
     check('password', 'Password must be 6 or more characters').isLength({ min: 6 })
 ], async (req, res) => {
@@ -75,7 +75,7 @@ app.post('/signup', [
     }
 });
 
-app.post('/login', [
+app.post('/auth', [
     check('username', 'Username is required').not().isEmpty(),
     check('password', 'Password is required').exists()
 ], async (req, res) => {
