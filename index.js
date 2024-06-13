@@ -1,119 +1,104 @@
+
 const express = require('express');
 const mongoose = require('mongoose');
-const bodtParser = require('body-parser');
+// const bcrypt = require('bcryptjs');
+// const jwt = require('jsonwebtoken');
+// const { check, validationResult } = require('express-validator');
 const cors = require('cors');
-const bcrypt = require('bcryptjs');
-const jwt = require('jsonwebtoken');
-const { check, validationResult } = require('express-validator');
-
-const app = express();
-app.use(cors());
-app.use(express.json());
 
 const URL = 'mongodb+srv://jawad404:Jawad818@myhub.7k4rzfk.mongodb.net/BlogApp?retryWrites=true&w=majority&appName=myhub';
 
+// const JWT_SECRET =  'secret';
+
+
+const app = express();
+app.use(express.json());
+app.use(cors());
+
+
+// MongoDB connection
 mongoose.connect(URL, {
-    useNewUrlParser: true,
-    useUnifiedTopology: true,
+  useNewUrlParser: true,
+  useUnifiedTopology: true,
 })
-.then(() => {
-    console.log('Connected to MongoDB');
-})
-.catch((error) => {
-    console.log("Error Connecting to MongoDB: ", error.message);
-});
+  .then(() => console.log('MongoDB Connected...'))
+  .catch(err => {
+    console.error(err.message);
+    process.exit(1);
+  });
 
-
+// User Schema and Model
 const UserSchema = new mongoose.Schema({
-    username: { type: String, required: true, unique: true },
-    password: { type: String, required: true },
+  username: {
+    type: String,
+    required: true,
+  },
+  email: {
+    type: String,
+    required: true,
+    unique: true,
+  },
+  password: {
+    type: String,
+    required: true,
+  },
+  date: {
+    type: Date,
+    default: Date.now,
+  },
 });
 
 const User = mongoose.model('User', UserSchema);
 
-app.post('/auth', [
-    check('username', 'Username is required').not().isEmpty(),
-    check('password', 'Password must be 6 or more characters').isLength({ min: 6 })
-], async (req, res) => {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-        return res.status(400).json({ errors: errors.array() });
+// Register User
+app.post('/register', async (req, res) => {
+  try {
+    const { username, email, password } = req.body;
+
+    // Check if user already exists
+    let user = await User.findOne({ email, password });
+    if (user) {
+      return res.status(400).json({ message: 'User already exists' });
     }
+    else {
+      user = new User({
+        username,
+        email,
+        password,
+      });
 
-    const { username, password } = req.body;
-
-    try {
-        let user = await User.findOne({ username });
-
-        if (user) {
-            return res.status(400).json({ message: 'User already exists' });
-        }
-
-        const salt = await bcrypt.genSalt(10);
-        const hashedPassword = await bcrypt.hash(password, salt);
-
-        user = new User({
-            username,
-            password: hashedPassword,
-        });
-
-        await user.save();
-
-        const payload = {
-            user: {
-                id: user.id
-            }
-        };
-
-        jwt.sign(payload, 'secret', { expiresIn: '1h' }, (err, token) => {
-            if (err) throw err;
-            res.status(201).json({ token });
-        });
-    } catch (error) {
-        console.error('Error signing up user:', error);
-        res.status(500).json({ message: 'Server error' });
+      await user.save();
+      res.status(201).json({ message: 'User registered successfully' });
     }
+  } catch (error) {
+    console.error('Error registering user:', error);
+    res.status(500).json({ message: 'Error registering user', error: error.message });
+  }
 });
 
-app.post('/auth', [
-    check('username', 'Username is required').not().isEmpty(),
-    check('password', 'Password is required').exists()
-], async (req, res) => {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-        return res.status(400).json({ errors: errors.array() });
+
+// Login User
+app.post('/login', async (req, res) => {
+  try {
+    const { email, password } = req.body;
+
+    // Check if user exists
+    let user = await User.findOne ({ email, password });
+    if (!user) {
+      return res.status(400).json({ message: 'Invalid credentials' });
     }
-
-    const { username, password } = req.body;
-
-    try {
-        let user = await User.findOne({ username });
-
-        if (!user) {
-            return res.status(400).json({ message: 'Invalid credentials' });
-        }
-
-        const isMatch = await bcrypt.compare(password, user.password);
-
-        if (!isMatch) {
-            return res.status(400).json({ message: 'Invalid credentials' });
-        }
-
-        const payload = {
-            user: {
-                id: user.id
-            }
-        };
-
-        jwt.sign(payload, 'secret', { expiresIn: '1h' }, (err, token) => {
-            if (err) throw err;
-            res.json({ token });
-        });
-    } catch (error) {
-        console.error('Error logging in user:', error);
-        res.status(500).json({ message: 'Server error' });
+    else {
+      res.status(200).json({ message: 'Login successful' });
     }
-});
+  } catch (error) {
+    console.error('Error logging in user:', error);
+    res.status(500).json({ message: 'Error logging in user', error: error.message });
+  }
+} );
+
+
+
+
 
 // Post Schema
 
@@ -166,3 +151,4 @@ app.get('/posts', async (req, res) => {
 app.listen(5000, () => {
     console.log('Server has started on port 5000!');
 });
+ 
