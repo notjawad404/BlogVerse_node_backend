@@ -2,6 +2,7 @@ const express = require("express");
 const mongoose = require("mongoose");
 const bcrypt = require('bcryptjs');
 const cors = require("cors");
+const { generateToken } = require('./auth'); // Import the generateToken function
 
 const app = express();
 app.use(express.json());
@@ -70,7 +71,11 @@ app.post("/register", async (req, res) => {
 
     // Save the user to the database
     await user.save();
-    res.status(201).json({ message: "User registered successfully" });
+
+    // Generate JWT token
+    const token = generateToken(user);
+
+    res.status(201).json({ message: "User registered successfully", token });
   } catch (error) {
     console.error("Error registering user:", error);
     res.status(500).json({ message: "Error registering user", error: error.message });
@@ -94,8 +99,11 @@ app.post("/login", async (req, res) => {
       return res.status(400).json({ message: "Invalid credentials" });
     }
 
+    // Generate JWT token
+    const token = generateToken(user);
+
     // Login successful
-    res.status(200).json({ message: "Login successful" });
+    res.status(200).json({ message: "Login successful", token });
   } catch (error) {
     console.error("Error logging in user:", error);
     res.status(500).json({ message: "Error logging in user", error: error.message });
@@ -183,7 +191,7 @@ app.get("/posts/user/:username", async (req, res) => {
 });
 
 // Start the server
-const PORT = process.env.PORT || 5000;
+const PORT = 5000;
 app.listen(PORT, () => {
   console.log(`Server has started on port ${PORT}!`);
 });
