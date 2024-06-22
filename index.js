@@ -1,8 +1,7 @@
 const express = require("express");
 const mongoose = require("mongoose");
-const bcrypt = require('bcryptjs');
 const cors = require("cors");
-const { generateToken } = require('./auth'); // Import the generateToken function
+const { generateToken, verifyToken } = require('./auth'); // Import the generateToken and verifyToken functions
 
 const app = express();
 app.use(express.json());
@@ -24,7 +23,7 @@ mongoose.connect(URL, connectOptions)
     console.error("MongoDB Connection Error:", err.message);
     process.exit(1);
   });
-
+ 
 // User Schema and Model
 const UserSchema = new mongoose.Schema({
   username: {
@@ -59,14 +58,12 @@ app.post("/register", async (req, res) => {
       return res.status(400).json({ message: "User already exists" });
     }
 
-    // Hash the password
-    const hashedPassword = await bcrypt.hash(password, 10);
 
     // Create a new user object
     user = new User({
       username,
       email,
-      password: hashedPassword,
+      password,
     });
 
     // Save the user to the database
@@ -75,7 +72,7 @@ app.post("/register", async (req, res) => {
     // Generate JWT token
     const token = generateToken(user);
 
-    res.status(201).json({ message: "User registered successfully", token });
+    res.status(201).json({ message: "User registered successfully", token, username });
   } catch (error) {
     console.error("Error registering user:", error);
     res.status(500).json({ message: "Error registering user", error: error.message });
@@ -94,16 +91,16 @@ app.post("/login", async (req, res) => {
     }
 
     // Check password
-    const isPasswordValid = await bcrypt.compare(password, user.password);
-    if (!isPasswordValid) {
+    if(password !== user.password) {
       return res.status(400).json({ message: "Invalid credentials" });
     }
 
+
     // Generate JWT token
     const token = generateToken(user);
-
+  
     // Login successful
-    res.status(200).json({ message: "Login successful", token });
+    res.status(200).json({ message: "Login successful", token, username: user.username});
   } catch (error) {
     console.error("Error logging in user:", error);
     res.status(500).json({ message: "Error logging in user", error: error.message });
@@ -121,7 +118,7 @@ const PostSchema = new mongoose.Schema({
 const Post = mongoose.model("Posts", PostSchema);
 
 // Create a new post
-app.post("/posts", async (req, res) => {
+app.post("/posts", verifyToken, async (req, res) => {
   try {
     const { username, title, content } = req.body;
 
@@ -152,9 +149,8 @@ app.get("/posts", async (req, res) => {
   }
 });
 
-
 // Update Post
-app.put("/posts/:id", async (req, res) => {
+app.put("/posts/:id", verifyToken, async (req, res) => {
   try {
     const { id } = req.params;
     const { title, content } = req.body;
@@ -173,7 +169,7 @@ app.put("/posts/:id", async (req, res) => {
 });
 
 // Delete Post
-app.delete("/posts/:id", async (req, res) => {
+app.delete("/posts/:id", verifyToken, async (req, res) => {
   try {
     const { id } = req.params;
 
@@ -190,7 +186,7 @@ app.delete("/posts/:id", async (req, res) => {
   }
 });
 
-// Start the server 
+// Start the server
 const PORT = 5000;
 app.listen(PORT, () => {
   console.log(`Server has started on port ${PORT}!`);
