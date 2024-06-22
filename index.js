@@ -1,16 +1,15 @@
 const express = require("express");
 const mongoose = require("mongoose");
-const bcrypt = require("bcryptjs");
+const bcrypt = require('bcryptjs');
 const cors = require("cors");
-const { generateToken } = require("./auth"); // Import the generateToken function
+const { generateToken } = require('./auth'); // Import the generateToken function
 
 const app = express();
 app.use(express.json());
 app.use(cors());
 
 // MongoDB connection URL
-const URL =
-  "mongodb+srv://jawad404:Jawad818@myhub.7k4rzfk.mongodb.net/BlogApp?retryWrites=true&w=majority";
+const URL = "mongodb+srv://jawad404:Jawad818@myhub.7k4rzfk.mongodb.net/BlogApp?retryWrites=true&w=majority";
 
 // MongoDB connection options
 const connectOptions = {
@@ -19,8 +18,7 @@ const connectOptions = {
 };
 
 // MongoDB connection
-mongoose
-  .connect(URL, connectOptions)
+mongoose.connect(URL, connectOptions)
   .then(() => console.log("MongoDB Connected..."))
   .catch((err) => {
     console.error("MongoDB Connection Error:", err.message);
@@ -80,9 +78,7 @@ app.post("/register", async (req, res) => {
     res.status(201).json({ message: "User registered successfully", token });
   } catch (error) {
     console.error("Error registering user:", error);
-    res
-      .status(500)
-      .json({ message: "Error registering user", error: error.message });
+    res.status(500).json({ message: "Error registering user", error: error.message });
   }
 });
 
@@ -110,9 +106,7 @@ app.post("/login", async (req, res) => {
     res.status(200).json({ message: "Login successful", token });
   } catch (error) {
     console.error("Error logging in user:", error);
-    res
-      .status(500)
-      .json({ message: "Error logging in user", error: error.message });
+    res.status(500).json({ message: "Error logging in user", error: error.message });
   }
 });
 
@@ -143,9 +137,7 @@ app.post("/posts", async (req, res) => {
     res.status(201).json(post);
   } catch (error) {
     console.error("Error saving post:", error);
-    res
-      .status(500)
-      .json({ message: "Error saving post", error: error.message });
+    res.status(500).json({ message: "Error saving post", error: error.message });
   }
 });
 
@@ -156,51 +148,36 @@ app.get("/posts", async (req, res) => {
     res.status(200).json(posts);
   } catch (error) {
     console.error("Error fetching posts:", error);
-    res
-      .status(500)
-      .json({ message: "Error fetching posts", error: error.message });
+    res.status(500).json({ message: "Error fetching posts", error: error.message });
   }
 });
 
-// Get all posts or search by title
+// Search post by title
 app.get("/posts", async (req, res) => {
   try {
-    const title = req.query.title; // Use query parameter
+    const title = req.params.title;
 
-    if (title) {
-      // Find posts by title in the database
-      const posts = await Post.find({
-        title: { $regex: title, $options: "i" },
-      });
+    // Find the post by title in the database
+    const post = await Post.findOne({ title });
 
-      if (posts.length === 0) {
-        return res.status(404).json({ message: "Posts not found" });
-      }
-
-      return res.status(200).json(posts);
+    if (!post) {
+      return res.status(404).json({ message: "Post not found" });
     }
 
-    // If no title query parameter, return all posts
-    const posts = await Post.find();
-    res.status(200).json(posts);
+    res.status(200).json(post);
   } catch (error) {
-    console.error("Error fetching posts:", error);
-    res
-      .status(500)
-      .json({ message: "Error fetching posts", error: error.message });
+    console.error("Error fetching post:", error);
+    res.status(500).json({ message: "Error fetching post", error: error.message });
   }
 });
 
-// Get all posts by username
-
+// Get all posts of specific user
 app.get("/posts/:username", async (req, res) => {
   try {
     const username = req.params.username;
 
-    // Find posts by username in the database
-    const posts = await Post.find({
-      username: { $regex: username, $options: "i" },
-    });
+    // Find all posts by the username in the database
+    const posts = await Post.find({ username });
 
     if (posts.length === 0) {
       return res.status(404).json({ message: "Posts not found" });
@@ -209,60 +186,7 @@ app.get("/posts/:username", async (req, res) => {
     res.status(200).json(posts);
   } catch (error) {
     console.error("Error fetching posts:", error);
-    res
-      .status(500)
-      .json({ message: "Error fetching posts", error: error.message });
-  }
-});
-
-// update posts of user
-app.put("/posts/:id", async (req, res) => {
-  try {
-    const id = req.params.id;
-    const { title, content } = req.body;
-    // Find post by id in the database
-    const post = await Post.findById(id);
-
-    if (!post) {
-      return res.status(404).json({ message: "Post not found" });
-    }
-
-    // Update post
-    post.title = title;
-    post.content = content;
-
-    // Save the updated post to the database
-    await post.save();
-    res.status(200).json(post);
-  } catch (error) {
-    console.error("Error updating post:", error);
-    res
-      .status(500)
-      .json({ message: "Error updating post", error: error.message });
-  }
-});
-
-// Delete post
-
-app.delete("/posts/:id", async (req, res) => {
-  try {
-    const id = req.params.id;
-
-    // Find post by id in the database
-    const post = await Post.findById(id);
-
-    if (!post) {
-      return res.status(404).json({ message: "Post not found" });
-    }
-
-    // Delete post
-    await post.remove();
-    res.status(200).json({ message: "Post deleted successfully" });
-  } catch (error) {
-    console.error("Error deleting post:", error);
-    res
-      .status(500)
-      .json({ message: "Error deleting post", error: error.message });
+    res.status(500).json({ message: "Error fetching posts", error: error.message });
   }
 });
 
