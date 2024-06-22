@@ -152,13 +152,14 @@ app.get("/posts", async (req, res) => {
   }
 });
 
-// Search post by title
-app.get("/posts", async (req, res) => {
-  try {
-    const title = req.params.title;
 
-    // Find the post by title in the database
-    const post = await Post.findOne({ title });
+// Update Post
+app.put("/posts/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { title, content } = req.body;
+
+    const post = await Post.findByIdAndUpdate(id, { title, content }, { new: true });
 
     if (!post) {
       return res.status(404).json({ message: "Post not found" });
@@ -166,31 +167,30 @@ app.get("/posts", async (req, res) => {
 
     res.status(200).json(post);
   } catch (error) {
-    console.error("Error fetching post:", error);
-    res.status(500).json({ message: "Error fetching post", error: error.message });
+    console.error("Error updating post:", error);
+    res.status(500).json({ message: "Error updating post", error: error.message });
   }
 });
 
-// Get all posts of specific user
-app.get("/posts/:username", async (req, res) => {
+// Delete Post
+app.delete("/posts/:id", async (req, res) => {
   try {
-    const username = req.params.username;
+    const { id } = req.params;
 
-    // Find all posts by the username in the database
-    const posts = await Post.find({ username });
+    const post = await Post.findByIdAndDelete(id);
 
-    if (posts.length === 0) {
-      return res.status(404).json({ message: "Posts not found" });
+    if (!post) {
+      return res.status(404).json({ message: "Post not found" });
     }
 
-    res.status(200).json(posts);
+    res.status(200).json({ message: "Post deleted successfully" });
   } catch (error) {
-    console.error("Error fetching posts:", error);
-    res.status(500).json({ message: "Error fetching posts", error: error.message });
+    console.error("Error deleting post:", error);
+    res.status(500).json({ message: "Error deleting post", error: error.message });
   }
 });
 
-// Start the server
+// Start the server 
 const PORT = 5000;
 app.listen(PORT, () => {
   console.log(`Server has started on port ${PORT}!`);
