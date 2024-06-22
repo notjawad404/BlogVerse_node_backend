@@ -152,37 +152,24 @@ app.get("/posts", async (req, res) => {
   }
 });
 
-// Search post by title
-app.get("/posts/search/:title", async (req, res) => {
+// Get all posts or search by title
+app.get("/posts", async (req, res) => {
   try {
-    const title = req.params.title;
+    const title = req.query.title; // Use query parameter
 
-    // Find the post by title in the database
-    const post = await Post.findOne({ title });
+    if (title) {
+      // Find posts by title in the database
+      const posts = await Post.find({ title: { $regex: title, $options: "i" } });
 
-    if (!post) {
-      return res.status(404).json({ message: "Post not found" });
+      if (posts.length === 0) {
+        return res.status(404).json({ message: "Posts not found" });
+      }
+
+      return res.status(200).json(posts);
     }
 
-    res.status(200).json(post);
-  } catch (error) {
-    console.error("Error fetching post:", error);
-    res.status(500).json({ message: "Error fetching post", error: error.message });
-  }
-});
-
-// Get all posts of specific user
-app.get("/posts/user/:username", async (req, res) => {
-  try {
-    const username = req.params.username;
-
-    // Find all posts by the username in the database
-    const posts = await Post.find({ username });
-
-    if (posts.length === 0) {
-      return res.status(404).json({ message: "Posts not found" });
-    }
-
+    // If no title query parameter, return all posts
+    const posts = await Post.find();
     res.status(200).json(posts);
   } catch (error) {
     console.error("Error fetching posts:", error);
