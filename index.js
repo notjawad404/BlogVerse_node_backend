@@ -154,10 +154,12 @@ app.get("/posts", async (req, res) => {
 });
 
 // Update Post
-app.put("/posts/:id", verifyToken, async (req, res) => {
+app.put("/posts/:id", async (req, res) => {
   try {
     const { id } = req.params;
     const { title, content } = req.body;
+
+    console.log(`Updating post: ${id}`, req.body);
 
     const post = await Post.findByIdAndUpdate(id, { title, content }, { new: true });
 
@@ -173,9 +175,11 @@ app.put("/posts/:id", verifyToken, async (req, res) => {
 });
 
 // Delete Post
-app.delete("/posts/:id", verifyToken, async (req, res) => {
+app.delete("/posts/:id", async (req, res) => {
   try {
     const { id } = req.params;
+
+    console.log(`Deleting post: ${id}`);
 
     const post = await Post.findByIdAndDelete(id);
 
@@ -189,6 +193,7 @@ app.delete("/posts/:id", verifyToken, async (req, res) => {
     res.status(500).json({ message: "Error deleting post", error: error.message });
   }
 });
+
 
 // Start the server
 const PORT = 5000;
