@@ -8,7 +8,8 @@ app.use(express.json());
 app.use(cors());
 
 // MongoDB connection URL
-const URL = "mongodb+srv://jawad404:Jawad818@myhub.7k4rzfk.mongodb.net/BlogApp?retryWrites=true&w=majority";
+const url1 = "mongodb+srv://jawad404:Jawad818@myhub.7k4rzfk.mongodb.net/BlogApp?retryWrites=true&w=majority&appName=myhub"
+// const URL = "mongodb+srv://jawad404:Jawad818@myhub.7k4rzfk.mongodb.net/BlogApp?retryWrites=true&w=majority";
 
 // MongoDB connection options
 const connectOptions = {
@@ -17,7 +18,7 @@ const connectOptions = {
 };
 
 // MongoDB connection
-mongoose.connect(URL, connectOptions)
+mongoose.connect(url1, connectOptions)
   .then(() => console.log("MongoDB Connected..."))
   .catch((err) => {
     console.error("MongoDB Connection Error:", err.message);
@@ -118,7 +119,9 @@ const PostSchema = new mongoose.Schema({
 const Post = mongoose.model("Posts", PostSchema);
 
 // Create a new post
-app.post("/posts", verifyToken, async (req, res) => {
+app.post("/posts", async (req, res) => {
+  console.log("Received request to create post:", req.body);
+
   try {
     const { username, title, content } = req.body;
 
@@ -137,6 +140,7 @@ app.post("/posts", verifyToken, async (req, res) => {
     res.status(500).json({ message: "Error saving post", error: error.message });
   }
 });
+
 
 // Get all posts
 app.get("/posts", async (req, res) => {
