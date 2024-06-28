@@ -6,7 +6,7 @@ const { generateToken, verifyToken } = require('./auth'); // Import the generate
 const app = express();
 app.use(express.json());
 app.use(cors());
-
+ 
 // MongoDB connection URL
 const url1 = "mongodb+srv://jawad404:Jawad818@myhub.7k4rzfk.mongodb.net/BlogApp?retryWrites=true&w=majority&appName=myhub"
 // const URL = "mongodb+srv://jawad404:Jawad818@myhub.7k4rzfk.mongodb.net/BlogApp?retryWrites=true&w=majority";
@@ -191,6 +191,51 @@ app.delete("/posts/:id", async (req, res) => {
   } catch (error) {
     console.error("Error deleting post:", error);
     res.status(500).json({ message: "Error deleting post", error: error.message });
+  }
+});
+
+
+// Comments Schema
+const CommentsSchema = new mongoose.Schema({
+  username : {type: String, required: true},
+  postid : {type: String, required: true},
+  comments: {type: String, required: true},
+})
+
+const Comment = mongoose.model("Comments", CommentsSchema);
+
+// Add comments
+app.post("/comments", async (req, res) => {
+  console.log("Received request to create comment:", req.body);
+
+  try {
+    const { username, postid, comments } = req.body;
+
+    // Create a new comment object
+    const comment = new Comment({
+      username,
+      postid,
+      comments,
+    });
+
+    // Save the comment to the database
+    await comment.save();
+    res.status(201).json(comment);
+  } catch (error) {
+    console.error("Error saving comment:", error);
+    res.status(500).json({ message: "Error saving comment", error: error.message });
+  }
+});
+
+
+// Get all comments
+app.get("/comments", async (req, res) => {
+  try {
+    const comment = await Comment.find();
+    res.status(200).json(comment);
+  } catch (error) {
+    console.error("Error fetching comment:", error);
+    res.status(500).json({ message: "Error fetching comment", error: error.message });
   }
 });
 
